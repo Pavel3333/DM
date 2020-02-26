@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+п»ї#define _CRT_SECURE_NO_WARNINGS
 
 #include <stdint.h>
 #include <stdio.h>
@@ -12,7 +12,7 @@
 #define VERSION     "1.0"
 #define AUTHOR      "Ushaev Pavel (group M3O-121B-19)"
 
-// Алфавит римской системы счисления
+// РђР»С„Р°РІРёС‚ СЂРёРјСЃРєРѕР№ СЃРёСЃС‚РµРјС‹ СЃС‡РёСЃР»РµРЅРёСЏ
 const char alphabet[] = {
 	'M',
 	'D',
@@ -33,14 +33,14 @@ const int alphabet_values[] = {
 	1
 };
 
-/* Глобальные переменные */
+/* Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ */
 
-// Сессия - динамический массив, состоящий из команд (Command) и действий (Action)
+// РЎРµСЃСЃРёСЏ - РґРёРЅР°РјРёС‡РµСЃРєРёР№ РјР°СЃСЃРёРІ, СЃРѕСЃС‚РѕСЏС‰РёР№ РёР· РєРѕРјР°РЅРґ (Command) Рё РґРµР№СЃС‚РІРёР№ (Action)
 unsigned int session_size = 0;
 char*        session      = NULL;
 
 /*
-Структура:
+РЎС‚СЂСѓРєС‚СѓСЂР°:
 	Command command1
 	Action_X action1
 	Command command2,
@@ -48,13 +48,13 @@ char*        session      = NULL;
 	...
 */
 
-//Режим работы конвертера
+//Р РµР¶РёРј СЂР°Р±РѕС‚С‹ РєРѕРЅРІРµСЂС‚РµСЂР°
 Mode mode = MODE_RuleOf4;
 
-// Дескриптор файла журнала
+// Р”РµСЃРєСЂРёРїС‚РѕСЂ С„Р°Р№Р»Р° Р¶СѓСЂРЅР°Р»Р°
 FILE* log_file = NULL;
 
-void log(const char* data) { // Журналирование в файл всего, что мы выводим
+void log(const char* data) { // Р–СѓСЂРЅР°Р»РёСЂРѕРІР°РЅРёРµ РІ С„Р°Р№Р» РІСЃРµРіРѕ, С‡С‚Рѕ РјС‹ РІС‹РІРѕРґРёРј
 	if (!data) return;
 
 	if (log_file)
@@ -128,7 +128,7 @@ void load_session(char* path) {
 			break;
 		}
 
-		*(Command*)(session + offset) = command; // Записываем команду в память
+		*(Command*)(session + offset) = command; // Р—Р°РїРёСЃС‹РІР°РµРј РєРѕРјР°РЅРґСѓ РІ РїР°РјСЏС‚СЊ
 		offset += sizeof(command);
 
 		if (command == CMD_RomanToArabian) {
@@ -240,43 +240,53 @@ void save_session(char* path) {
 		log("Successfully saved\n");
 }
 
-unsigned int roman2arabian(const char* roman) { // Перевод из римской в арабскую с/с
+unsigned int roman2arabian(const char* roman) { // РџРµСЂРµРІРѕРґ РёР· СЂРёРјСЃРєРѕР№ РІ Р°СЂР°Р±СЃРєСѓСЋ СЃ/СЃ
 	// TODO: need to implement dat shit in the future
 	log("This don't work, sorry\n");
 	return 0;
 }
 
-char* arabian2roman(unsigned int arabian) { // Перевод из арабской в римскую с/с
+char* arabian2roman(unsigned int arabian) { // РџРµСЂРµРІРѕРґ РёР· Р°СЂР°Р±СЃРєРѕР№ РІ СЂРёРјСЃРєСѓСЋ СЃ/СЃ
 	if (arabian > 4000) {
 		log("You can't convert numbers bigger than 4000 to Roman number system\n");
 		return NULL;
 	}
 
-	unsigned int roman[sizeof(alphabet)] = { 0 }; // Здесь будет содержаться количество каждой цифры из алфавита римской с/с
-	unsigned int roman_size = 0;                  // Размер выходной строки
+	unsigned int roman[sizeof(alphabet)] = { 0 }; // Р—РґРµСЃСЊ Р±СѓРґРµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊСЃСЏ РєРѕР»РёС‡РµСЃС‚РІРѕ РєР°Р¶РґРѕР№ С†РёС„СЂС‹ РёР· Р°Р»С„Р°РІРёС‚Р° СЂРёРјСЃРєРѕР№ СЃ/СЃ
+	unsigned int roman_size = 0;                  // Р Р°Р·РјРµСЂ РІС‹С…РѕРґРЅРѕР№ СЃС‚СЂРѕРєРё
 
-	// Заполняем массив
+	// Р—Р°РїРѕР»РЅСЏРµРј РјР°СЃСЃРёРІ
 	for (int i = 0; i < sizeof(alphabet); i++) {
 		roman[i] = arabian / alphabet_values[i];
 		arabian   = arabian % alphabet_values[i];
 
-		roman_size += roman[i];
+		if (mode == MODE_RuleOf3 && roman[i] == 4)
+			roman_size += 2;        // IV
+		else
+			roman_size += roman[i]; // IIII
 	}
 
-	// Выделяем память для строчки (включая NULL-терминатор в конце)
+	// Р’С‹РґРµР»СЏРµРј РїР°РјСЏС‚СЊ РґР»СЏ СЃС‚СЂРѕС‡РєРё (РІРєР»СЋС‡Р°СЏ NULL-С‚РµСЂРјРёРЅР°С‚РѕСЂ РІ РєРѕРЅС†Рµ)
 	char* result = (char*)malloc(roman_size + 1);
 	if (!result) {
 		log("Unable to allocate memory for the roman number\n");
 		return NULL;
 	}
 
-	// Заполняем строчку
+	// Р—Р°РїРѕР»РЅСЏРµРј СЃС‚СЂРѕС‡РєСѓ
 	int counter = 0;
 
 	for (unsigned int i = 0; i < sizeof(alphabet); i++) {
-		for (unsigned int j = 0; j < roman[i]; j++) {
-			result[counter] = alphabet[i];
-			counter++;
+		if (mode == MODE_RuleOf3 && roman[i] == 4) {
+			result[counter]     = alphabet[i];
+			result[counter + 1] = alphabet[i - 1];
+			counter += 2;
+		}
+		else {
+			for (unsigned int j = 0; j < roman[i]; j++) {
+				result[counter] = alphabet[i];
+				counter++;
+			}
 		}
 	}
 	result[counter] = 0;
@@ -368,9 +378,9 @@ void print_session() {
 }
 
 int main() {
-	int command; // Команда, которую нужно выполнить
-	int scanned; // Сколько полей обработал scanf
-	int err = 0; // Переменная для хранения кода ошибки
+	int command; // РљРѕРјР°РЅРґР°, РєРѕС‚РѕСЂСѓСЋ РЅСѓР¶РЅРѕ РІС‹РїРѕР»РЅРёС‚СЊ
+	int scanned; // РЎРєРѕР»СЊРєРѕ РїРѕР»РµР№ РѕР±СЂР°Р±РѕС‚Р°Р» scanf
+	int err = 0; // РџРµСЂРµРјРµРЅРЅР°СЏ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ РєРѕРґР° РѕС€РёР±РєРё
 
 	log(NAME ", v" VERSION "\n");
 	log(DESCRIPTION        "\n");
@@ -381,19 +391,19 @@ int main() {
 	if (!log_file)
 		log("Unable to open the log file\n");
 
-	while (!err) {  // Цикл обработки команд
+	while (!err) {  // Р¦РёРєР» РѕР±СЂР°Р±РѕС‚РєРё РєРѕРјР°РЅРґ
 		print_commands();
 
 		log("Please type the command:\n");
 
-		scanned = scanf("%d", &command); // Ввод команды
-		if (scanned != 1) {              // Проверить, вдруг введено неверно
-			log("Error: invalid command\n"); // Вывести сообщение об ошибке
+		scanned = scanf("%d", &command); // Р’РІРѕРґ РєРѕРјР°РЅРґС‹
+		if (scanned != 1) {              // РџСЂРѕРІРµСЂРёС‚СЊ, РІРґСЂСѓРі РІРІРµРґРµРЅРѕ РЅРµРІРµСЂРЅРѕ
+			log("Error: invalid command\n"); // Р’С‹РІРµСЃС‚Рё СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 			/*
-				Следующая строчка нужна для очистки потока ввода от неправильных данных
-				Например, если вы ввели "jgvuyf", то scanf не считает число из потока ввода (stdin)
-				Однако эта строчка "jgvuyf" останется в потоке ввода и будет считываться stdin при каждой итерации цикла
-				Именно поэтому нужно применить rewind, дабы забыть неверные данные как страшный сон
+				РЎР»РµРґСѓСЋС‰Р°СЏ СЃС‚СЂРѕС‡РєР° РЅСѓР¶РЅР° РґР»СЏ РѕС‡РёСЃС‚РєРё РїРѕС‚РѕРєР° РІРІРѕРґР° РѕС‚ РЅРµРїСЂР°РІРёР»СЊРЅС‹С… РґР°РЅРЅС‹С…
+				РќР°РїСЂРёРјРµСЂ, РµСЃР»Рё РІС‹ РІРІРµР»Рё "jgvuyf", С‚Рѕ scanf РЅРµ СЃС‡РёС‚Р°РµС‚ С‡РёСЃР»Рѕ РёР· РїРѕС‚РѕРєР° РІРІРѕРґР° (stdin)
+				РћРґРЅР°РєРѕ СЌС‚Р° СЃС‚СЂРѕС‡РєР° "jgvuyf" РѕСЃС‚Р°РЅРµС‚СЃСЏ РІ РїРѕС‚РѕРєРµ РІРІРѕРґР° Рё Р±СѓРґРµС‚ СЃС‡РёС‚С‹РІР°С‚СЊСЃСЏ stdin РїСЂРё РєР°Р¶РґРѕР№ РёС‚РµСЂР°С†РёРё С†РёРєР»Р°
+				РРјРµРЅРЅРѕ РїРѕСЌС‚РѕРјСѓ РЅСѓР¶РЅРѕ РїСЂРёРјРµРЅРёС‚СЊ rewind, РґР°Р±С‹ Р·Р°Р±С‹С‚СЊ РЅРµРІРµСЂРЅС‹Рµ РґР°РЅРЅС‹Рµ РєР°Рє СЃС‚СЂР°С€РЅС‹Р№ СЃРѕРЅ
 			*/
 			rewind(stdin);
 			continue;
@@ -404,9 +414,9 @@ int main() {
 
 			log("Please enter the roman number: ");
 
-			scanned = scanf("%256s", data.roman); // Ввод команды
+			scanned = scanf("%256s", data.roman); // Р’РІРѕРґ РєРѕРјР°РЅРґС‹
 			if (scanned != 1) {
-				log("Error: invalid number\n"); // Вывести сообщение об ошибке
+				log("Error: invalid number\n"); // Р’С‹РІРµСЃС‚Рё СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 				continue;
 			}
 
@@ -427,7 +437,7 @@ int main() {
 
 			scanned = scanf("%u", &(data.arabian));
 			if (scanned != 1) {
-				log("Error: invalid number\n"); // Вывести сообщение об ошибке
+				log("Error: invalid number\n"); // Р’С‹РІРµСЃС‚Рё СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 				continue;
 			}
 
@@ -457,7 +467,7 @@ int main() {
 
 			scanned = scanf("%u", &mode);
 			if (scanned != 1) {
-				log("Error: invalid number\n"); // Вывести сообщение об ошибке
+				log("Error: invalid number\n"); // Р’С‹РІРµСЃС‚Рё СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 				continue;
 			}
 
@@ -487,9 +497,9 @@ int main() {
 
 			log("Please enter the session file name: ");
 
-			scanned = scanf("%256s", data.path); // Ввод команды
+			scanned = scanf("%256s", data.path); // Р’РІРѕРґ РєРѕРјР°РЅРґС‹
 			if (scanned != 1) {
-				log("Error: invalid number\n"); // Вывести сообщение об ошибке
+				log("Error: invalid number\n"); // Р’С‹РІРµСЃС‚Рё СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 				continue;
 			}
 
@@ -502,9 +512,9 @@ int main() {
 
 			log("Please enter the session file name: ");
 
-			scanned = scanf("%256s", data.path); // Ввод команды
+			scanned = scanf("%256s", data.path); // Р’РІРѕРґ РєРѕРјР°РЅРґС‹
 			if (scanned != 1) {
-				log("Error: invalid number\n"); // Вывести сообщение об ошибке
+				log("Error: invalid number\n"); // Р’С‹РІРµСЃС‚Рё СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 				continue;
 			}
 
@@ -522,13 +532,13 @@ int main() {
 
 			add_command_to_session(command, NULL, 0);
 		}
-		else if (command == CMD_Exit) {      // Выход
+		else if (command == CMD_Exit) {      // Р’С‹С…РѕРґ
 			add_command_to_session(command, NULL, 0);
 
 			break;
 		}
 		else {
-			log("Error: unknown command\n"); // Неизвестная команда
+			log("Error: unknown command\n"); // РќРµРёР·РІРµСЃС‚РЅР°СЏ РєРѕРјР°РЅРґР°
 			continue;
 		}
 	}

@@ -1,10 +1,10 @@
-#pragma once
+п»ї#pragma once
 
-// Алфавит римской системы счисления
+// РђР»С„Р°РІРёС‚ СЂРёРјСЃРєРѕР№ СЃРёСЃС‚РµРјС‹ СЃС‡РёСЃР»РµРЅРёСЏ
 const char alphabet[];
 const int  alphabet_values[];
 
-// Коды команд
+// РљРѕРґС‹ РєРѕРјР°РЅРґ
 typedef enum {
 	CMD_RomanToArabian = 1,
 	CMD_ArabianToRoman = 2,
@@ -19,13 +19,13 @@ typedef enum {
 
 #pragma pack(push, 1)
 
-//Режимы работы конвертера
+//Р РµР¶РёРјС‹ СЂР°Р±РѕС‚С‹ РєРѕРЅРІРµСЂС‚РµСЂР°
 typedef enum {
 	MODE_RuleOf3 = 3,
 	MODE_RuleOf4 = 4
 } Mode;
 
-// Структуры данных для каждой команды
+// РЎС‚СЂСѓРєС‚СѓСЂС‹ РґР°РЅРЅС‹С… РґР»СЏ РєР°Р¶РґРѕР№ РєРѕРјР°РЅРґС‹
 typedef struct {
 	char roman[256];
 	unsigned int arabian;
