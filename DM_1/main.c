@@ -33,6 +33,8 @@ const int alphabet_values[] = {
 	1
 };
 
+/* Глобальные переменные */
+
 // Сессия - динамический массив, состоящий из команд (Command) и действий (Action)
 unsigned int session_size = 0;
 char*        session      = NULL;
@@ -45,6 +47,9 @@ char*        session      = NULL;
 	Action_X action2
 	...
 */
+
+//Режим работы конвертера
+Mode mode = MODE_RuleOf4;
 
 // Дескриптор файла журнала
 FILE* log_file = NULL;
@@ -82,12 +87,18 @@ void add_command_to_session(Command command, void* data, unsigned int size) {
 void load_session(char* path) {
 	FILE* session_file = fopen(path, "rb");
 	if (!session_file) {
-		log("Unable to open session file");
+		log("Unable to open session file\n");
 		return;
 	}
 
 	unsigned int offset = 0;
 	unsigned int readed = 0;
+
+	readed = fread(&mode, sizeof(mode), 1, session_file);
+	if (readed != 1) {
+		log("Unable to read converter mode from the file\n");
+		return;
+	}
 
 	readed = fread(&session_size, sizeof(session_size), 1, session_file);
 	if (readed != 1) {
@@ -100,6 +111,7 @@ void load_session(char* path) {
 		log("Unable to allocate memory for the new session\n");
 		return;
 	}
+	free(session);
 	session = new_session;
 
 	while (offset < session_size) {
@@ -112,7 +124,7 @@ void load_session(char* path) {
 		}
 
 		if (command < 0 || command > CMD_Exit) {
-			log("Error while saving session: unknown command\n");
+			log("Error while loading session: unknown command\n");
 			break;
 		}
 
@@ -120,36 +132,45 @@ void load_session(char* path) {
 		offset += sizeof(command);
 
 		if (command == CMD_RomanToArabian) {
-			readed = fread(session + offset, sizeof(Action_1), 1, session_file);
+			readed = fread(session + offset, sizeof(Action_RomanToArabian), 1, session_file);
 			if (readed != 1) {
-				log("Unable to read action (1) from the file\n");
+				log("Unable to read action from the file\n");
 				break;
 			}
-			offset += sizeof(Action_1);
+			offset += sizeof(Action_RomanToArabian);
 		}
 		else if (command == CMD_ArabianToRoman) {
-			readed = fread(session + offset, sizeof(Action_2), 1, session_file);
+			readed = fread(session + offset, sizeof(Action_ArabianToRoman), 1, session_file);
 			if (readed != 1) {
-				log("Unable to read action (2) from the file\n");
+				log("Unable to read action from the file\n");
 				break;
 			}
-			offset += sizeof(Action_2);
+			offset += sizeof(Action_ArabianToRoman);
+		}
+		else if (command == CMD_ChangeMode) {
+			readed = fread(session + offset, sizeof(Action_ChangeMode), 1, session_file);
+			if (readed != 1) {
+				log("Unable to read action from the file\n");
+				break;
+			}
+			mode = ((Action_ChangeMode*)(session + offset))->mode;
+			offset += sizeof(Action_ChangeMode);
 		}
 		else if (command == CMD_LoadSession) {
-			readed = fread(session + offset, sizeof(Action_4), 1, session_file);
+			readed = fread(session + offset, sizeof(Action_LoadSession), 1, session_file);
 			if (readed != 1) {
-				log("Unable to read action (4) from the file\n");
+				log("Unable to read action from the file\n");
 				break;
 			}
-			offset += sizeof(Action_4);
+			offset += sizeof(Action_LoadSession);
 		}
 		else if (command == CMD_SaveSession) {
-			readed = fread(session + offset, sizeof(Action_5), 1, session_file);
+			readed = fread(session + offset, sizeof(Action_SaveSession), 1, session_file);
 			if (readed != 1) {
-				log("Unable to read action (5) from the file\n");
+				log("Unable to read action from the file\n");
 				break;
 			}
-			offset += sizeof(Action_5);
+			offset += sizeof(Action_SaveSession);
 		}
 	}
 
@@ -158,22 +179,25 @@ void load_session(char* path) {
 	if (offset != session_size) {
 		printf("Error: was readed not all session (%u of %u)\n", offset, session_size);
 		log("Session corrupted and will be cleared\n");
-		
+
 		free(session);
 		session = NULL;
 		session_size = 0;
 	}
+	else
+		log("Successfully loaded\n");
 }
 
 void save_session(char* path) {
 	FILE* session_file = fopen(path, "wb");
 	if (!session_file) {
-		log("Unable to open session file");
+		log("Unable to open session file\n");
 		return;
 	}
 
 	unsigned int offset = 0;
 
+	fwrite(&mode,         1, sizeof(mode),         session_file);
 	fwrite(&session_size, 1, sizeof(session_size), session_file);
 
 	while (offset < session_size) {
@@ -187,20 +211,24 @@ void save_session(char* path) {
 		offset += sizeof(command);
 
 		if (command == CMD_RomanToArabian) {
-			fwrite((Action_1*)(session + offset), 1, sizeof(Action_1), session_file);
-			offset += sizeof(Action_1);
+			fwrite((Action_RomanToArabian*)(session + offset), 1, sizeof(Action_RomanToArabian), session_file);
+			offset += sizeof(Action_RomanToArabian);
 		}
 		else if (command == CMD_ArabianToRoman) {
-			fwrite((Action_2*)(session + offset), 1, sizeof(Action_2), session_file);
-			offset += sizeof(Action_2);
+			fwrite((Action_ArabianToRoman*)(session + offset), 1, sizeof(Action_ArabianToRoman), session_file);
+			offset += sizeof(Action_ArabianToRoman);
+		}
+		else if (command == CMD_ChangeMode) {
+			fwrite((Action_ChangeMode*)(session + offset), 1, sizeof(Action_ChangeMode), session_file);
+			offset += sizeof(Action_ChangeMode);
 		}
 		else if (command == CMD_LoadSession) {
-			fwrite((Action_4*)(session + offset), 1, sizeof(Action_4), session_file);
-			offset += sizeof(Action_4);
+			fwrite((Action_LoadSession*)(session + offset), 1, sizeof(Action_LoadSession), session_file);
+			offset += sizeof(Action_LoadSession);
 		}
 		else if (command == CMD_SaveSession) {
-			fwrite((Action_5*)(session + offset), 1, sizeof(Action_5), session_file);
-			offset += sizeof(Action_5);
+			fwrite((Action_SaveSession*)(session + offset), 1, sizeof(Action_SaveSession), session_file);
+			offset += sizeof(Action_SaveSession);
 		}
 	}
 
@@ -208,6 +236,8 @@ void save_session(char* path) {
 
 	if (offset != session_size)
 		printf("Error: was writed not all session (%u of %u)\n", offset, session_size);
+	else
+		log("Successfully saved\n");
 }
 
 unsigned int roman2arabian(const char* roman) { // Перевод из римской в арабскую с/с
@@ -255,14 +285,21 @@ char* arabian2roman(unsigned int arabian) { // Перевод из арабской в римскую с/с
 }
 
 void print_commands() {
-	log("Please type the command:\n");
+	log("Commands:\n");
 	log("\t1. Convert roman to arabican\n");
 	log("\t2. Convert arabican to roman\n");
-	log("\t3. Print current session\n");
-	log("\t4. Load session from file\n");
-	log("\t5. Save current session\n");
-	log("\t6. Clear current session\n");
-	log("\t7. Exit\n");
+	log("\t3. Print convert mode\n");
+	log("\t4. Change convert mode\n");
+	log("\t5. Print current session\n");
+	log("\t6. Load session from file\n");
+	log("\t7. Save current session\n");
+	log("\t8. Clear current session\n");
+	log("\t9. Exit\n");
+}
+
+void print_modes() {
+	log("\t3. Convert by the Rule of 3\n");
+	log("\t4. Convert by the Rule of 4\n");
 }
 
 void print_session() {
@@ -270,24 +307,35 @@ void print_session() {
 
 	log("Session commands:\n");
 
+	if (!session || !session_size) {
+		log("Session is empty\n");
+		return;
+	}
+
 	while (offset < session_size) {
 		Command command = *(Command*)(session + offset);
 		offset += sizeof(command);
 
 		if (command == CMD_ArabianToRoman) {
-			Action_1 data = *(Action_1*)(session + offset);
+			Action_RomanToArabian data = *(Action_RomanToArabian*)(session + offset);
 			offset += sizeof(data);
 
 			printf("Converted from arabian %u to roman %s\n", data.arabian, data.roman);
 		}
 		else if (command == CMD_RomanToArabian) {
-			Action_2 data = *(Action_2*)(session + offset);
+			Action_ArabianToRoman data = *(Action_ArabianToRoman*)(session + offset);
 			offset += sizeof(data);
 
 			printf("Converted from roman %s to arabian %u\n", data.roman, data.arabian);
 		}
+		else if (command == CMD_ChangeMode) {
+			Action_ChangeMode data = *(Action_ChangeMode*)(session + offset);
+			offset += sizeof(data);
+
+			printf("Converter mode changed to %u\n", data.mode);
+		}
 		else if (command == CMD_LoadSession) {
-			Action_4 data = *(Action_4*)(session + offset);
+			Action_LoadSession data = *(Action_LoadSession*)(session + offset);
 			offset += sizeof(data);
 
 			log("Load session from ");
@@ -295,22 +343,26 @@ void print_session() {
 			log("\n");
 		}
 		else if (command == CMD_SaveSession) {
-			Action_5 data = *(Action_5*)(session + offset);
+			Action_SaveSession data = *(Action_SaveSession*)(session + offset);
 			offset += sizeof(data);
 
-			log("Save session from ");
+			log("Save session to ");
 			log(data.path);
 			log("\n");
 		}
 		else { // Command without data
-			if (command == CMD_PrintSession)
+			if (command == CMD_PrintMode)
+				log("Print mode\n");
+			else if (command == CMD_PrintSession)
 				log("Print session\n");
 			else if (command == CMD_ClearSession)
 				log("Clear session\n");
 			else if (command == CMD_Exit)
 				log("Exit\n");
-			else
+			else {
 				printf("Unknown command %d\n", command);
+				break;
+			}
 		}
 	}
 }
@@ -332,6 +384,8 @@ int main() {
 	while (!err) {  // Цикл обработки команд
 		print_commands();
 
+		log("Please type the command:\n");
+
 		scanned = scanf("%d", &command); // Ввод команды
 		if (scanned != 1) {              // Проверить, вдруг введено неверно
 			log("Error: invalid command\n"); // Вывести сообщение об ошибке
@@ -346,7 +400,7 @@ int main() {
 		}
 
 		if (command == CMD_RomanToArabian) {
-			Action_1 data;
+			Action_RomanToArabian data;
 
 			log("Please enter the roman number: ");
 
@@ -367,7 +421,7 @@ int main() {
 			add_command_to_session(command, &data, sizeof(data));
 		}
 		else if (command == CMD_ArabianToRoman) {
-			Action_2 data;
+			Action_ArabianToRoman data;
 
 			log("Please enter the arabian number: ");
 
@@ -394,13 +448,42 @@ int main() {
 
 			add_command_to_session(command, &data, sizeof(data));
 		}
+		else if (command == CMD_ChangeMode) {
+			Action_ChangeMode data;
+
+			print_modes();
+
+			log("Please type the mode: ");
+
+			scanned = scanf("%u", &mode);
+			if (scanned != 1) {
+				log("Error: invalid number\n"); // Вывести сообщение об ошибке
+				continue;
+			}
+
+			if (mode != MODE_RuleOf3 && mode != MODE_RuleOf4) {
+				mode = MODE_RuleOf4;
+				log("Invalid mode. Setted 4 (default mode)\n");
+				continue;
+			}
+			data.mode = mode;
+
+			log("Mode setted successfully\n");
+
+			add_command_to_session(command, &data, sizeof(data));
+		}
+		else if (command == CMD_PrintMode) {
+			printf("Mode is %u\n", mode);
+
+			add_command_to_session(command, NULL, 0);
+		}
 		else if (command == CMD_PrintSession) {
 			print_session();
 
 			add_command_to_session(command, NULL, 0);
 		}
 		else if (command == CMD_LoadSession) {
-			Action_4 data;
+			Action_LoadSession data;
 
 			log("Please enter the session file name: ");
 
@@ -415,7 +498,7 @@ int main() {
 			add_command_to_session(command, (char*)(&data), sizeof(data));
 		}
 		else if (command == CMD_SaveSession) {
-			Action_5 data;
+			Action_SaveSession data;
 
 			log("Please enter the session file name: ");
 
