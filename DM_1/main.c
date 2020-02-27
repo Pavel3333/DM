@@ -1,6 +1,7 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -240,10 +241,66 @@ void save_session(char* path) {
 		log("Successfully saved\n");
 }
 
-unsigned int roman2arabian(const char* roman) { // Перевод из римской в арабскую с/с
-	// TODO: need to implement dat shit in the future
-	log("This don't work, sorry\n");
+unsigned int find_value_by_letter(char letter) {
+	for (int i = 0; i < sizeof(alphabet); i++)
+		if (alphabet[i] == letter)
+			return alphabet_values[i];
 	return 0;
+}
+
+unsigned int roman2arabian(const char* roman) { // Перевод из римской в арабскую с/с
+	unsigned int result = 0;
+
+	unsigned int max_value = find_value_by_letter('I');
+
+	bool flag = false;
+
+/*
+result = 0;
+max_value = 1;
+MMMCMXCIX
+        ^ value = 10;   max_value = 10;   flag = 0;  result += value;
+	   ^  value = 1;    max_value = 10;   flag = 1;  result -= value;
+	  ^   value = 100;  max_value = 100;  flag = 0;  result += value;
+	 ^    value = 10;   max_value = 100;  flag = 1;  result -= value;
+	^     value = 1000; max_value = 1000; flag = 0;  result += value;
+   ^      value = 100;  max_value = 1000; flag = 1;  result -= value;
+  ^       value = 1000; max_value = 1000; flag = 0;  result += value;
+ ^        value = 1000; max_value = 1000; flag = 0;  result += value;
+^         value = 1000; max_value = 1000; flag = 0;  result += value;
+*/
+
+	for (int i = strlen(roman) - 1; i >= 0; i--) {
+		unsigned int value = find_value_by_letter(roman[i]);
+		if (!value) {
+			printf("Invalid character: %c\n", roman[i]);
+			return 0;
+		}
+
+		if (value < max_value) { // little letter (Rule of 3)
+			if (value == (max_value / 10)) {
+				if (!flag) {
+					result -= value;
+					flag = true;
+				}
+				else { // if little letter repeats 2+ times -> error
+					log("Invalid number\n");
+					return 0;
+				}
+			}
+			else { // you can't do VX
+				log("Invalid number\n");
+				return 0;
+			}
+		}
+		else {
+			max_value = value;
+			result += value;
+			flag = false;
+		}
+	}
+
+	return result;
 }
 
 char* arabian2roman(unsigned int arabian) { // Перевод из арабской в римскую с/с
@@ -252,44 +309,42 @@ char* arabian2roman(unsigned int arabian) { // Перевод из арабск�
 		return NULL;
 	}
 
+	char* result = NULL;
+
 	unsigned int roman[sizeof(alphabet)] = { 0 }; // Здесь будет содержаться количество каждой цифры из алфавита римской с/с
 	unsigned int roman_size = 0;                  // Размер выходной строки
 
-	// Заполняем массив
-	for (int i = 0; i < sizeof(alphabet); i++) {
-		roman[i] = arabian / alphabet_values[i];
-		arabian   = arabian % alphabet_values[i];
+	if (mode == MODE_RuleOf4) { // Работаем по правилу четырёх
+		// Заполняем массив
+		for (int i = 0; i < sizeof(alphabet); i++) {
+			roman[i] = arabian / alphabet_values[i];
+			arabian = arabian % alphabet_values[i];
 
-		if (mode == MODE_RuleOf3 && roman[i] == 4)
-			roman_size += 2;        // IV
-		else
 			roman_size += roman[i]; // IIII
-	}
-
-	// Выделяем память для строчки (включая NULL-терминатор в конце)
-	char* result = (char*)malloc(roman_size + 1);
-	if (!result) {
-		log("Unable to allocate memory for the roman number\n");
-		return NULL;
-	}
-
-	// Заполняем строчку
-	int counter = 0;
-
-	for (unsigned int i = 0; i < sizeof(alphabet); i++) {
-		if (mode == MODE_RuleOf3 && roman[i] == 4) {
-			result[counter]     = alphabet[i];
-			result[counter + 1] = alphabet[i - 1];
-			counter += 2;
 		}
-		else {
+
+		// Выделяем память для строчки (включая NULL-терминатор в конце)
+		result = (char*)malloc(roman_size + 1);
+		if (!result) {
+			log("Unable to allocate memory for the roman number\n");
+			return NULL;
+		}
+
+		// Заполняем строчку
+		int counter = 0;
+
+		for (unsigned int i = 0; i < sizeof(alphabet); i++) {
 			for (unsigned int j = 0; j < roman[i]; j++) {
 				result[counter] = alphabet[i];
 				counter++;
 			}
 		}
+		result[counter] = 0;
 	}
-	result[counter] = 0;
+	else { // Работаем по правилу трёх
+		log("Sorry, Rule of 3 is not supporting\n");
+		return NULL; // TODO
+	}
 	
 	return result;
 }
@@ -420,13 +475,13 @@ int main() {
 				continue;
 			}
 
-			unsigned int result = roman2arabian(data.roman);
-			if (!result) {
+			data.arabian = roman2arabian(data.roman);
+			if (!data.arabian) {
 				log("Unable to convert this number\n");
 				continue;
 			}
 
-			data.arabian = result;
+			printf("Number in arabian numeric system is: %u\n", data.arabian);
 
 			add_command_to_session(command, &data, sizeof(data));
 		}
