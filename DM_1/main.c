@@ -304,8 +304,17 @@ MMMCMXCIX
 }
 
 char* arabian2roman(unsigned int arabian) { // Перевод из арабской в римскую с/с
-	if (arabian > 4000) {
-		log("You can't convert numbers bigger than 4000 to Roman number system\n");
+	if (arabian == 0) {
+		log("You can't convert null numbers\n");
+		return NULL;
+	}
+
+	if (mode == MODE_RuleOf4 && arabian > 4000) {
+		log("You can't convert numbers bigger than 4000 to Roman number system by the Rule of 4\n");
+		return NULL;
+	}
+	else if (mode == MODE_RuleOf3 && arabian >= 4000) {
+		log("You can't convert numbers equal or bigger than 4000 to Roman number system by the Rule of 3\n");
 		return NULL;
 	}
 
@@ -322,30 +331,74 @@ char* arabian2roman(unsigned int arabian) { // Перевод из арабск�
 
 			roman_size += roman[i]; // IIII
 		}
+	}
+	else { // Работаем по правилу трёх
+		/*
+		3999
+		^    3999 / 1000 = 3 (MMM) -> 999
+		 ^   999  / 100  = 9 (CM)  -> 99
+		  ^  99   / 10   = 9 (XC)  -> 9
+		   ^ 9    / 1    = 9 (IX)  -> 0
+		*/
 
-		// Выделяем память для строчки (включая NULL-терминатор в конце)
-		result = (char*)malloc(roman_size + 1);
-		if (!result) {
-			log("Unable to allocate memory for the roman number\n");
-			return NULL;
+		// Заполняем массив
+		for (int i = 0; i < sizeof(alphabet); i += 2) {
+			roman[i] = arabian / alphabet_values[i];
+			arabian  = arabian % alphabet_values[i];
+			if (roman[i] == 4) {
+				// IV
+				roman[i] = -1;
+				roman_size += 2;
+			}
+			else if (roman[i] > 4 && roman[i] < 9) {
+				// VIII
+				roman[i] = roman[i] / 5;
+				roman[i + 1] = roman[i] % 5;
+			}
+			else if (roman[i] == 9) {
+				// IX
+				roman[i]   = -2;
+				roman_size += 2;
+			}
+			else {
+				// III
+				roman_size += roman[i];
+			}
 		}
+	}
+	
+	// Выделяем память для строчки (включая NULL-терминатор в конце)
+	result = (char*)malloc(roman_size + 1);
+	if (!result) {
+		log("Unable to allocate memory for the roman number\n");
+		return NULL;
+	}
 
-		// Заполняем строчку
-		int counter = 0;
+	// Заполняем строчку
+	int counter = 0;
 
-		for (unsigned int i = 0; i < sizeof(alphabet); i++) {
+	for (unsigned int i = 0; i < sizeof(alphabet); i++) {
+		if (roman[i] == -1) {
+			// IV
+			result[counter]     = alphabet[i];
+			result[counter + 1] = alphabet[i - 1];
+			counter += 2;
+		}
+		else if (roman[i] == -2) {
+			// IX
+			result[counter]     = alphabet[i];
+			result[counter + 1] = alphabet[i - 2];
+			counter += 2;
+		}
+		else {
 			for (unsigned int j = 0; j < roman[i]; j++) {
 				result[counter] = alphabet[i];
 				counter++;
 			}
 		}
-		result[counter] = 0;
 	}
-	else { // Работаем по правилу трёх
-		log("Sorry, Rule of 3 is not supporting\n");
-		return NULL; // TODO
-	}
-	
+	result[counter] = 0;
+
 	return result;
 }
 
