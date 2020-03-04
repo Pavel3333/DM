@@ -251,6 +251,7 @@ unsigned int find_value_by_letter(char letter) {
 unsigned int roman2arabian(const char* roman) { // Перевод из римской в арабскую с/с
 	unsigned int result = 0;
 
+	unsigned int counter   = 0;
 	unsigned int max_value = find_value_by_letter('I');
 
 	bool flag = false;
@@ -278,6 +279,8 @@ MMMCMXCIX
 		}
 
 		if (value < max_value) { // little letter (Rule of 3)
+			counter = 0;
+
 			if (value == (max_value / 10)) {
 				if (!flag) {
 					result -= value;
@@ -294,7 +297,17 @@ MMMCMXCIX
 			}
 		}
 		else {
-			max_value = value;
+			if (value > max_value) {
+				counter = 0;
+				max_value = value;
+			}
+
+			counter++;
+			if (counter > 4) {
+				log("Invalid number\n");
+				return 0;
+			}
+
 			result += value;
 			flag = false;
 		}
